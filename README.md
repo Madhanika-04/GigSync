@@ -1,5 +1,4 @@
 # GigSync - Admin DashBoard
-# GigSync Admin Dashboard
 
 GigSync Admin Dashboard is a modern insure-tech operations console for managing gig worker protection data.
 
