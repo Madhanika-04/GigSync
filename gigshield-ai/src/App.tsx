@@ -11,6 +11,8 @@ import { ThemeProvider } from './context/ThemeContext'
 import { Alert, Claim, PageId, Platform, Policy, PolicyPlanName, Payout, Rider, RiskZone } from './types'
 import { alerts, claims, payouts, policies, policyPlans, riders, riskZones } from './data/mockData'
 import {
+  Activity,
+  BarChart3,
   CheckCircle2,
   FileText,
   Plus,
@@ -158,6 +160,39 @@ const AppLayout: React.FC = () => {
       return !anyPolicy
     })
   }, [ridersState, policiesState])
+
+  const claimStatusSummary = useMemo(() => {
+    const total = claimsState.length
+    const triggered = claimsState.filter(claim => claim.status === 'Triggered').length
+    const approved = claimsState.filter(claim => claim.status === 'Approved').length
+    const rejected = claimsState.filter(claim => claim.status === 'Rejected').length
+    const totalAmount = claimsState.reduce((sum, claim) => sum + claim.amount, 0)
+    const averageAmount = total ? Math.round(totalAmount / total) : 0
+    const approvalRate = total ? Math.round((approved / total) * 100) : 0
+    const rejectionRate = total ? Math.round((rejected / total) * 100) : 0
+
+    return {
+      total,
+      triggered,
+      approved,
+      rejected,
+      averageAmount,
+      approvalRate,
+      rejectionRate,
+    }
+  }, [claimsState])
+
+  const topClaimDisruptions = useMemo(() => {
+    const map = claimsState.reduce<Record<string, number>>((acc, claim) => {
+      acc[claim.disruption] = (acc[claim.disruption] ?? 0) + 1
+      return acc
+    }, {})
+
+    return Object.entries(map)
+      .map(([name, count]) => ({ name, count }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 3)
+  }, [claimsState])
 
   const notify = (message: string) => {
     setAdminNotice(message)
@@ -842,21 +877,82 @@ const AppLayout: React.FC = () => {
             />
           </div>
           <div className="xl:col-span-4 xl:self-start xl:sticky xl:top-24 space-y-5">
-            <div className="card dark:bg-[#0d1528] bg-white dark:border-[#1a2540] border-gray-200 p-5">
-              <div className="flex items-center gap-2 mb-2">
-                <ShieldCheck size={16} className="text-amber-400" />
-                <h3 className="text-sm font-bold dark:text-white text-gray-900">Claims Health</h3>
+            <div className="card overflow-hidden dark:bg-[#0d1528] bg-white dark:border-[#1a2540] border-gray-200">
+              <div className="h-16 bg-gradient-to-r dark:from-cyan-500/15 dark:via-blue-500/5 dark:to-transparent from-cyan-100 via-blue-50 to-transparent" />
+              <div className="p-5 -mt-8">
+                <div className="flex items-center gap-2 mb-3">
+                  <ShieldCheck size={16} className="text-amber-400" />
+                  <h3 className="text-sm font-bold dark:text-white text-gray-900">Claims Health</h3>
+                </div>
+                <div className="grid grid-cols-3 gap-2 mb-3">
+                  <div className="rounded-xl dark:bg-[#0a1224] bg-gray-50 border dark:border-[#1a2540] border-gray-200 p-2">
+                    <p className="text-[10px] uppercase tracking-wide dark:text-[#4a6080] text-gray-500">Total</p>
+                    <p className="mt-1 text-sm font-semibold dark:text-gray-100 text-gray-900">{claimStatusSummary.total}</p>
+                  </div>
+                  <div className="rounded-xl dark:bg-[#0a1224] bg-gray-50 border dark:border-[#1a2540] border-gray-200 p-2">
+                    <p className="text-[10px] uppercase tracking-wide dark:text-[#4a6080] text-gray-500">Approved</p>
+                    <p className="mt-1 text-sm font-semibold text-emerald-400">{claimStatusSummary.approved}</p>
+                  </div>
+                  <div className="rounded-xl dark:bg-[#0a1224] bg-gray-50 border dark:border-[#1a2540] border-gray-200 p-2">
+                    <p className="text-[10px] uppercase tracking-wide dark:text-[#4a6080] text-gray-500">Triggered</p>
+                    <p className="mt-1 text-sm font-semibold text-amber-400">{claimStatusSummary.triggered}</p>
+                  </div>
+                </div>
+                <p className="text-xs dark:text-[#6b80a3] text-gray-600 mb-1">Triggered today: <span className="text-blue-400 font-semibold">{stats.claimsToday}</span></p>
+                <p className="text-xs dark:text-[#6b80a3] text-gray-600">Payout volume: <span className="text-cyan-400 font-semibold">₹{stats.weeklyPayouts.toLocaleString()}</span></p>
               </div>
-              <p className="text-xs dark:text-[#6b80a3] text-gray-600 mb-1">Triggered today: <span className="text-blue-400 font-semibold">{stats.claimsToday}</span></p>
-              <p className="text-xs dark:text-[#6b80a3] text-gray-600">Payout volume: <span className="text-cyan-400 font-semibold">₹{stats.weeklyPayouts.toLocaleString()}</span></p>
             </div>
-            <AlertsPanel
-              alerts={alertsState}
-              onResolveAlert={handleResolveAlert}
-              onDeleteAlert={handleDeleteAlert}
-              onEscalateAlert={handleEscalateAlert}
-              className="xl:max-h-[760px]"
-            />
+
+            <div className="card dark:bg-[#0d1528] bg-white dark:border-[#1a2540] border-gray-200 p-5">
+              <div className="flex items-center gap-2 mb-3">
+                <Activity size={16} className="text-blue-400" />
+                <h3 className="text-sm font-bold dark:text-white text-gray-900">Status Breakdown</h3>
+              </div>
+              <div className="space-y-2">
+                {[
+                  { label: 'Approval Rate', value: claimStatusSummary.approvalRate, tone: 'bg-emerald-500' },
+                  { label: 'Rejection Rate', value: claimStatusSummary.rejectionRate, tone: 'bg-rose-500' },
+                ].map(item => (
+                  <div key={item.label}>
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-xs dark:text-[#6b80a3] text-gray-600">{item.label}</span>
+                      <span className="text-xs font-semibold dark:text-gray-200 text-gray-800">{item.value}%</span>
+                    </div>
+                    <div className="h-2 rounded-full dark:bg-[#111c35] bg-gray-100 overflow-hidden">
+                      <div className={clsx('h-full rounded-full', item.tone)} style={{ width: `${item.value}%` }} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div className="mt-4 grid grid-cols-2 gap-2">
+                <div className="rounded-xl dark:bg-[#0a1224] bg-gray-50 border dark:border-[#1a2540] border-gray-200 p-2">
+                  <p className="text-[10px] uppercase tracking-wide dark:text-[#4a6080] text-gray-500">Avg Claim</p>
+                  <p className="mt-1 text-sm font-semibold dark:text-gray-100 text-gray-900">₹{claimStatusSummary.averageAmount}</p>
+                </div>
+                <div className="rounded-xl dark:bg-[#0a1224] bg-gray-50 border dark:border-[#1a2540] border-gray-200 p-2">
+                  <p className="text-[10px] uppercase tracking-wide dark:text-[#4a6080] text-gray-500">Rejected</p>
+                  <p className="mt-1 text-sm font-semibold text-rose-400">{claimStatusSummary.rejected}</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="card dark:bg-[#0d1528] bg-white dark:border-[#1a2540] border-gray-200 p-5">
+              <div className="flex items-center gap-2 mb-3">
+                <BarChart3 size={16} className="text-cyan-400" />
+                <h3 className="text-sm font-bold dark:text-white text-gray-900">Top Claim Triggers</h3>
+              </div>
+              <div className="space-y-2">
+                {topClaimDisruptions.map(trigger => (
+                  <div key={trigger.name} className="rounded-xl dark:bg-[#0a1224] bg-gray-50 border dark:border-[#1a2540] border-gray-200 px-3 py-2 flex items-center justify-between">
+                    <span className="text-xs dark:text-gray-200 text-gray-800">{trigger.name}</span>
+                    <span className="text-xs font-semibold text-cyan-400">{trigger.count}</span>
+                  </div>
+                ))}
+                {topClaimDisruptions.length === 0 && (
+                  <p className="text-xs dark:text-[#6b80a3] text-gray-500">No claim triggers available.</p>
+                )}
+              </div>
+            </div>
           </div>
         </div>
       )
