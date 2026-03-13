@@ -1,4 +1,4 @@
-import { Rider, Alert, RiskZone, Policy, Claim, Payout } from '../types'
+import { Rider, Alert, RiskZone, Policy, Claim, Payout, PolicyPlan } from '../types'
 
 export const riders: Rider[] = [
   { id: 'RD001', name: 'Arun Kumar', platform: 'Swiggy', city: 'Chennai', zone: 'Zone A', riskLevel: 'High', weeklyPremium: 149, policyStatus: 'Active', claimStatus: 'Triggered', aiScore: 82, joinedDate: '2025-11-12' },
@@ -34,12 +34,20 @@ export const riskZones: RiskZone[] = [
   { id: 'Z006', name: 'Coimbatore South', city: 'Coimbatore', activeRiders: 15, disruption: null, riskLevel: 'Low', claimsTriggered: 0, aqiLevel: 65, temperature: 33, lastUpdated: '4 min ago' },
 ]
 
+export const policyPlans: PolicyPlan[] = [
+  { id: 'PLAN001', name: 'Basic', premium: 59, coverage: 1200, description: 'Starter protection for low-disruption routes and short city shifts.', recommendedFor: 'Low-risk riders and part-time coverage' },
+  { id: 'PLAN002', name: 'Standard', premium: 79, coverage: 1500, description: 'Balanced cover for riders in stable zones with moderate weekly exposure.', recommendedFor: 'Low to medium risk delivery zones' },
+  { id: 'PLAN003', name: 'Plus', premium: 99, coverage: 1800, description: 'Standard weekly protection with stronger disruption payouts.', recommendedFor: 'Medium-risk riders and dense city routes' },
+  { id: 'PLAN004', name: 'Premium', premium: 149, coverage: 2500, description: 'Enhanced payout limits for high-risk weather and disruption events.', recommendedFor: 'High-risk riders and volatile zones' },
+  { id: 'PLAN005', name: 'Elite', premium: 199, coverage: 3200, description: 'Top-tier cover with the highest payout ceiling for severe exposures.', recommendedFor: 'Critical routes, enterprise fleets, and high-value protection' },
+]
+
 export const policies: Policy[] = [
-  { id: 'POL001', riderId: 'RD001', riderName: 'Arun Kumar', platform: 'Swiggy', startDate: '2026-03-09', endDate: '2026-03-15', premium: 149, status: 'Active', coverage: 2500 },
-  { id: 'POL002', riderId: 'RD002', riderName: 'Priya Rajan', platform: 'Zomato', startDate: '2026-03-09', endDate: '2026-03-15', premium: 99, status: 'Active', coverage: 1800 },
-  { id: 'POL003', riderId: 'RD007', riderName: 'Anitha M', platform: 'Zomato', startDate: '2026-03-09', endDate: '2026-03-15', premium: 149, status: 'Active', coverage: 2500 },
-  { id: 'POL004', riderId: 'RD004', riderName: 'Deepa V', platform: 'Blinkit', startDate: '2026-03-10', endDate: '2026-03-16', premium: 149, status: 'Pending', coverage: 2500 },
-  { id: 'POL005', riderId: 'RD010', riderName: 'Murugan T', platform: 'Swiggy', startDate: '2026-03-10', endDate: '2026-03-16', premium: 149, status: 'Pending', coverage: 2500 },
+  { id: 'POL001', riderId: 'RD001', riderName: 'Arun Kumar', planName: 'Premium', platform: 'Swiggy', startDate: '2026-03-09', endDate: '2026-03-15', premium: 149, status: 'Active', coverage: 2500 },
+  { id: 'POL002', riderId: 'RD002', riderName: 'Priya Rajan', planName: 'Plus', platform: 'Zomato', startDate: '2026-03-09', endDate: '2026-03-15', premium: 99, status: 'Active', coverage: 1800 },
+  { id: 'POL003', riderId: 'RD007', riderName: 'Anitha M', planName: 'Premium', platform: 'Zomato', startDate: '2026-03-09', endDate: '2026-03-15', premium: 149, status: 'Active', coverage: 2500 },
+  { id: 'POL004', riderId: 'RD004', riderName: 'Deepa V', planName: 'Premium', platform: 'Blinkit', startDate: '2026-03-10', endDate: '2026-03-16', premium: 149, status: 'Pending', coverage: 2500 },
+  { id: 'POL005', riderId: 'RD010', riderName: 'Murugan T', planName: 'Premium', platform: 'Swiggy', startDate: '2026-03-10', endDate: '2026-03-16', premium: 149, status: 'Pending', coverage: 2500 },
 ]
 
 export const claims: Claim[] = [

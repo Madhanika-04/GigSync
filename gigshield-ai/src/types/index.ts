@@ -1,5 +1,6 @@
 export type RiskLevel = 'Low' | 'Medium' | 'High'
 export type PolicyStatus = 'Active' | 'Pending' | 'Expired'
+export type PolicyPlanName = 'Basic' | 'Standard' | 'Plus' | 'Premium' | 'Elite'
 export type ClaimStatus = 'None' | 'Triggered' | 'Approved' | 'Rejected'
 export type Platform = 'Swiggy' | 'Zomato' | 'Zepto' | 'Blinkit' | 'Dunzo'
 export type AlertPriority = 'critical' | 'high' | 'medium' | 'info'
@@ -48,12 +49,22 @@ export interface Policy {
   id: string
   riderId: string
   riderName: string
+  planName: PolicyPlanName
   platform: Platform
   startDate: string
   endDate: string
   premium: number
   status: PolicyStatus
   coverage: number
+}
+
+export interface PolicyPlan {
+  id: string
+  name: PolicyPlanName
+  premium: number
+  coverage: number
+  description: string
+  recommendedFor: string
 }
 
 export interface Claim {
