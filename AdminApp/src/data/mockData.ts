@@ -1,18 +1,18 @@
 import { Rider, Alert, RiskZone, Policy, Claim, Payout, PolicyPlan } from '../types'
 
 export const riders: Rider[] = [
-  { id: 'RD001', name: 'Arun Kumar', platform: 'Swiggy', city: 'Chennai', zone: 'Zone A', riskLevel: 'High', weeklyPremium: 149, policyStatus: 'Active', claimStatus: 'Triggered', aiScore: 82, joinedDate: '2025-11-12' },
-  { id: 'RD002', name: 'Priya Rajan', platform: 'Zomato', city: 'Chennai', zone: 'Zone B', riskLevel: 'Medium', weeklyPremium: 99, policyStatus: 'Active', claimStatus: 'None', aiScore: 61, joinedDate: '2025-10-08' },
-  { id: 'RD003', name: 'Karthik S', platform: 'Zepto', city: 'Coimbatore', zone: 'North', riskLevel: 'Low', weeklyPremium: 59, policyStatus: 'Active', claimStatus: 'Approved', aiScore: 28, joinedDate: '2025-09-20' },
-  { id: 'RD004', name: 'Deepa V', platform: 'Blinkit', city: 'Madurai', zone: 'Urban', riskLevel: 'High', weeklyPremium: 149, policyStatus: 'Pending', claimStatus: 'None', aiScore: 91, joinedDate: '2026-01-03' },
-  { id: 'RD005', name: 'Raj Mohan', platform: 'Dunzo', city: 'Salem', zone: 'Hub', riskLevel: 'Medium', weeklyPremium: 99, policyStatus: 'Active', claimStatus: 'Rejected', aiScore: 54, joinedDate: '2025-12-15' },
-  { id: 'RD006', name: 'Vignesh R', platform: 'Swiggy', city: 'Chennai', zone: 'Zone C', riskLevel: 'Low', weeklyPremium: 59, policyStatus: 'Expired', claimStatus: 'None', aiScore: 22, joinedDate: '2025-08-10' },
-  { id: 'RD007', name: 'Anitha M', platform: 'Zomato', city: 'Coimbatore', zone: 'South', riskLevel: 'High', weeklyPremium: 149, policyStatus: 'Active', claimStatus: 'Triggered', aiScore: 87, joinedDate: '2026-01-20' },
-  { id: 'RD008', name: 'Suresh P', platform: 'Zepto', city: 'Chennai', zone: 'Zone A', riskLevel: 'Medium', weeklyPremium: 99, policyStatus: 'Active', claimStatus: 'Approved', aiScore: 65, joinedDate: '2025-11-28' },
-  { id: 'RD009', name: 'Kavitha N', platform: 'Blinkit', city: 'Madurai', zone: 'Urban', riskLevel: 'Low', weeklyPremium: 59, policyStatus: 'Active', claimStatus: 'None', aiScore: 31, joinedDate: '2025-10-05' },
-  { id: 'RD010', name: 'Murugan T', platform: 'Swiggy', city: 'Salem', zone: 'Hub', riskLevel: 'High', weeklyPremium: 149, policyStatus: 'Pending', claimStatus: 'Triggered', aiScore: 93, joinedDate: '2026-02-01' },
-  { id: 'RD011', name: 'Selvi K', platform: 'Dunzo', city: 'Chennai', zone: 'Zone B', riskLevel: 'Medium', weeklyPremium: 99, policyStatus: 'Active', claimStatus: 'None', aiScore: 48, joinedDate: '2025-09-14' },
-  { id: 'RD012', name: 'Balaji R', platform: 'Zomato', city: 'Coimbatore', zone: 'North', riskLevel: 'Low', weeklyPremium: 59, policyStatus: 'Active', claimStatus: 'None', aiScore: 19, joinedDate: '2025-07-22' },
+  { id: 'RD001', name: 'Arun Kumar', platform: 'Swiggy', city: 'Chennai', zone: 'Zone A', selectedPlan: 'Premium', riskLevel: 'High', weeklyPremium: 149, policyStatus: 'Active', claimStatus: 'Triggered', aiScore: 82, joinedDate: '2025-11-12' },
+  { id: 'RD002', name: 'Priya Rajan', platform: 'Zomato', city: 'Chennai', zone: 'Zone B', selectedPlan: 'Plus', riskLevel: 'Medium', weeklyPremium: 99, policyStatus: 'Active', claimStatus: 'None', aiScore: 61, joinedDate: '2025-10-08' },
+  { id: 'RD003', name: 'Karthik S', platform: 'Zepto', city: 'Coimbatore', zone: 'North', selectedPlan: 'Basic', riskLevel: 'Low', weeklyPremium: 59, policyStatus: 'Active', claimStatus: 'Approved', aiScore: 28, joinedDate: '2025-09-20' },
+  { id: 'RD004', name: 'Deepa V', platform: 'Blinkit', city: 'Madurai', zone: 'Urban', selectedPlan: 'Premium', riskLevel: 'High', weeklyPremium: 149, policyStatus: 'Pending', claimStatus: 'None', aiScore: 91, joinedDate: '2026-01-03' },
+  { id: 'RD005', name: 'Raj Mohan', platform: 'Dunzo', city: 'Salem', zone: 'Hub', selectedPlan: 'Plus', riskLevel: 'Medium', weeklyPremium: 99, policyStatus: 'Active', claimStatus: 'Rejected', aiScore: 54, joinedDate: '2025-12-15' },
+  { id: 'RD006', name: 'Vignesh R', platform: 'Swiggy', city: 'Chennai', zone: 'Zone C', selectedPlan: 'Basic', riskLevel: 'Low', weeklyPremium: 59, policyStatus: 'Expired', claimStatus: 'None', aiScore: 22, joinedDate: '2025-08-10' },
+  { id: 'RD007', name: 'Anitha M', platform: 'Zomato', city: 'Coimbatore', zone: 'South', selectedPlan: 'Premium', riskLevel: 'High', weeklyPremium: 149, policyStatus: 'Active', claimStatus: 'Triggered', aiScore: 87, joinedDate: '2026-01-20' },
+  { id: 'RD008', name: 'Suresh P', platform: 'Zepto', city: 'Chennai', zone: 'Zone A', selectedPlan: 'Plus', riskLevel: 'Medium', weeklyPremium: 99, policyStatus: 'Active', claimStatus: 'Approved', aiScore: 65, joinedDate: '2025-11-28' },
+  { id: 'RD009', name: 'Kavitha N', platform: 'Blinkit', city: 'Madurai', zone: 'Urban', selectedPlan: 'Standard', riskLevel: 'Low', weeklyPremium: 79, policyStatus: 'Active', claimStatus: 'None', aiScore: 31, joinedDate: '2025-10-05' },
+  { id: 'RD010', name: 'Murugan T', platform: 'Swiggy', city: 'Salem', zone: 'Hub', selectedPlan: 'Elite', riskLevel: 'High', weeklyPremium: 199, policyStatus: 'Pending', claimStatus: 'Triggered', aiScore: 93, joinedDate: '2026-02-01' },
+  { id: 'RD011', name: 'Selvi K', platform: 'Dunzo', city: 'Chennai', zone: 'Zone B', selectedPlan: 'Plus', riskLevel: 'Medium', weeklyPremium: 99, policyStatus: 'Active', claimStatus: 'None', aiScore: 48, joinedDate: '2025-09-14' },
+  { id: 'RD012', name: 'Balaji R', platform: 'Zomato', city: 'Coimbatore', zone: 'North', selectedPlan: 'Basic', riskLevel: 'Low', weeklyPremium: 59, policyStatus: 'Active', claimStatus: 'None', aiScore: 19, joinedDate: '2025-07-22' },
 ]
 
 export const alerts: Alert[] = [
@@ -35,19 +35,19 @@ export const riskZones: RiskZone[] = [
 ]
 
 export const policyPlans: PolicyPlan[] = [
-  { id: 'PLAN001', name: 'Basic', premium: 59, coverage: 1200, description: 'Starter protection for low-disruption routes and short city shifts.', recommendedFor: 'Low-risk riders and part-time coverage' },
-  { id: 'PLAN002', name: 'Standard', premium: 79, coverage: 1500, description: 'Balanced cover for riders in stable zones with moderate weekly exposure.', recommendedFor: 'Low to medium risk delivery zones' },
-  { id: 'PLAN003', name: 'Plus', premium: 99, coverage: 1800, description: 'Standard weekly protection with stronger disruption payouts.', recommendedFor: 'Medium-risk riders and dense city routes' },
-  { id: 'PLAN004', name: 'Premium', premium: 149, coverage: 2500, description: 'Enhanced payout limits for high-risk weather and disruption events.', recommendedFor: 'High-risk riders and volatile zones' },
-  { id: 'PLAN005', name: 'Elite', premium: 199, coverage: 3200, description: 'Top-tier cover with the highest payout ceiling for severe exposures.', recommendedFor: 'Critical routes, enterprise fleets, and high-value protection' },
+  { id: 'PLAN001', name: 'Basic', premium: 59, coverage: 1200, maxPayout: 1200, description: 'Starter protection for low-disruption routes and short city shifts.', recommendedFor: 'Low-risk riders and part-time coverage' },
+  { id: 'PLAN002', name: 'Standard', premium: 79, coverage: 1500, maxPayout: 1500, description: 'Balanced cover for riders in stable zones with moderate weekly exposure.', recommendedFor: 'Low to medium risk delivery zones' },
+  { id: 'PLAN003', name: 'Plus', premium: 99, coverage: 1800, maxPayout: 1800, description: 'Standard weekly protection with stronger disruption payouts.', recommendedFor: 'Medium-risk riders and dense city routes' },
+  { id: 'PLAN004', name: 'Premium', premium: 149, coverage: 2500, maxPayout: 2500, description: 'Enhanced payout limits for high-risk weather and disruption events.', recommendedFor: 'High-risk riders and volatile zones' },
+  { id: 'PLAN005', name: 'Elite', premium: 199, coverage: 3200, maxPayout: 3200, description: 'Top-tier cover with the highest payout ceiling for severe exposures.', recommendedFor: 'Critical routes, enterprise fleets, and high-value protection' },
 ]
 
 export const policies: Policy[] = [
-  { id: 'POL001', riderId: 'RD001', riderName: 'Arun Kumar', planName: 'Premium', platform: 'Swiggy', startDate: '2026-03-09', endDate: '2026-03-15', premium: 149, status: 'Active', coverage: 2500 },
-  { id: 'POL002', riderId: 'RD002', riderName: 'Priya Rajan', planName: 'Plus', platform: 'Zomato', startDate: '2026-03-09', endDate: '2026-03-15', premium: 99, status: 'Active', coverage: 1800 },
-  { id: 'POL003', riderId: 'RD007', riderName: 'Anitha M', planName: 'Premium', platform: 'Zomato', startDate: '2026-03-09', endDate: '2026-03-15', premium: 149, status: 'Active', coverage: 2500 },
-  { id: 'POL004', riderId: 'RD004', riderName: 'Deepa V', planName: 'Premium', platform: 'Blinkit', startDate: '2026-03-10', endDate: '2026-03-16', premium: 149, status: 'Pending', coverage: 2500 },
-  { id: 'POL005', riderId: 'RD010', riderName: 'Murugan T', planName: 'Premium', platform: 'Swiggy', startDate: '2026-03-10', endDate: '2026-03-16', premium: 149, status: 'Pending', coverage: 2500 },
+  { id: 'POL001', riderId: 'RD001', riderName: 'Arun Kumar', planName: 'Premium', platform: 'Swiggy', startDate: '2026-03-09', endDate: '2026-03-15', premium: 149, status: 'Active', coverage: 2500, maxPayout: 2500 },
+  { id: 'POL002', riderId: 'RD002', riderName: 'Priya Rajan', planName: 'Plus', platform: 'Zomato', startDate: '2026-03-09', endDate: '2026-03-15', premium: 99, status: 'Active', coverage: 1800, maxPayout: 1800 },
+  { id: 'POL003', riderId: 'RD007', riderName: 'Anitha M', planName: 'Premium', platform: 'Zomato', startDate: '2026-03-09', endDate: '2026-03-15', premium: 149, status: 'Active', coverage: 2500, maxPayout: 2500 },
+  { id: 'POL004', riderId: 'RD004', riderName: 'Deepa V', planName: 'Premium', platform: 'Blinkit', startDate: '2026-03-10', endDate: '2026-03-16', premium: 149, status: 'Pending', coverage: 2500, maxPayout: 2500 },
+  { id: 'POL005', riderId: 'RD010', riderName: 'Murugan T', planName: 'Elite', platform: 'Swiggy', startDate: '2026-03-10', endDate: '2026-03-16', premium: 199, status: 'Pending', coverage: 3200, maxPayout: 3200 },
 ]
 
 export const claims: Claim[] = [

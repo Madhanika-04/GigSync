@@ -6,6 +6,7 @@ import {
     Users, Zap, Loader2
 } from 'lucide-react';
 import { useNotificationStore, SMS_SERVICE } from '../../store/notificationStore';
+import { API_BASE_URL } from '../../config';
 
 /* ─── Types ─── */
 type DisruptionType = 'Heavy Rain' | 'Extreme Heat' | 'Air Pollution' | 'Zone Closure';
@@ -30,64 +31,107 @@ interface DisruptionData {
     outdoorRisk?: string;
 }
 
-/* ─── Data ─── */
-const DISRUPTIONS: DisruptionData[] = [
-    {
-        id: 'Heavy Rain',
-        icon: <CloudRain className="h-5 w-5" />,
-        color: 'text-blue-400', bg: 'bg-blue-500/10', border: 'border-blue-500/30',
-        riskLevel: 'High',
-        timing: 'Expected Today',
-        location: 'Chennai South',
-        start: '5:30 PM',
-        end: '8:15 PM',
-        metricLabel: 'Rainfall Prediction',
-        metricValue: '85 mm',
-        probability: 42,
-        impact: 'Moderate to Severe',
-        ridersAffected: 12,
-    },
-    {
-        id: 'Extreme Heat',
-        icon: <Thermometer className="h-5 w-5" />,
-        color: 'text-orange-400', bg: 'bg-orange-500/10', border: 'border-orange-500/30',
-        riskLevel: 'Moderate',
-        timing: 'Tomorrow Afternoon',
-        location: 'All Zones',
-        start: '12:00 PM',
-        end: '4:00 PM',
-        metricLabel: 'Peak Temperature',
-        metricValue: '41°C',
-        probability: 65,
-        impact: 'Slower speeds, frequent breaks required',
-    },
-    {
-        id: 'Air Pollution',
-        icon: <Wind className="h-5 w-5" />,
-        color: 'text-purple-400', bg: 'bg-purple-500/10', border: 'border-purple-500/30',
-        riskLevel: 'Severe',
-        timing: 'Expected Tonight',
-        location: 'Chennai Central',
-        duration: '6 hours',
-        metricLabel: 'AQI Level',
-        metricValue: '340',
-        probability: 88,
-        impact: 'Slower delivery speed and rider fatigue',
-        outdoorRisk: 'High',
-    },
-    {
-        id: 'Zone Closure',
-        icon: <AlertTriangle className="h-5 w-5" />,
-        color: 'text-red-400', bg: 'bg-red-500/10', border: 'border-red-500/30',
-        riskLevel: 'Low',
-        timing: 'No current alerts',
-        location: 'None',
-        metricLabel: 'Status',
-        metricValue: 'Clear',
-        probability: 5,
-        impact: 'Normal Operations',
-    },
-];
+interface SessionUserUpdate {
+    activeClaim: RiderClaimUpdate | null;
+    claimHistory: RiderClaimUpdate[];
+    id: string;
+    role: 'rider';
+    name: string;
+    email: string;
+    selectedPlan: string | null;
+    platform: string | null;
+    city: string | null;
+    totalPayouts: number;
+    payoutHistory: Array<{
+        id: string;
+        date: string;
+        reason: string;
+        amount: number;
+        method: string;
+        status: 'Completed' | 'Pending';
+    }>;
+}
+
+interface RiderClaimUpdate {
+    id: string;
+    date: string;
+    disruption: 'Heavy Rain' | 'Pollution' | 'Air Pollution' | 'Extreme Heat' | 'Zone Closure';
+    location: string;
+    incomeLoss: number;
+    payout: number;
+    status: 'Processing' | 'Approved' | 'Paid' | 'Rejected';
+    rainfallMm?: number;
+    ordersDropped?: number;
+    paymentMethod?: string;
+    txnId?: string;
+    aqiLevel?: number;
+}
+
+interface ExplorePageProps {
+    riderZone: string;
+    riderCity: string;
+    onClaimTriggered: (user: SessionUserUpdate, claim?: RiderClaimUpdate) => void;
+}
+
+function buildDisruptions(riderZone: string, riderCity: string): DisruptionData[] {
+    return [
+        {
+            id: 'Heavy Rain',
+            icon: <CloudRain className="h-5 w-5" />,
+            color: 'text-blue-400', bg: 'bg-blue-500/10', border: 'border-blue-500/30',
+            riskLevel: 'High',
+            timing: 'Expected Today',
+            location: riderZone,
+            start: '5:30 PM',
+            end: '8:15 PM',
+            metricLabel: 'Rainfall Prediction',
+            metricValue: '85 mm',
+            probability: 42,
+            impact: 'Moderate to Severe',
+            ridersAffected: 12,
+        },
+        {
+            id: 'Extreme Heat',
+            icon: <Thermometer className="h-5 w-5" />,
+            color: 'text-orange-400', bg: 'bg-orange-500/10', border: 'border-orange-500/30',
+            riskLevel: 'Moderate',
+            timing: 'Tomorrow Afternoon',
+            location: `${riderCity} Delivery Belt`,
+            start: '12:00 PM',
+            end: '4:00 PM',
+            metricLabel: 'Peak Temperature',
+            metricValue: '41°C',
+            probability: 65,
+            impact: 'Slower speeds, frequent breaks required',
+        },
+        {
+            id: 'Air Pollution',
+            icon: <Wind className="h-5 w-5" />,
+            color: 'text-purple-400', bg: 'bg-purple-500/10', border: 'border-purple-500/30',
+            riskLevel: 'Severe',
+            timing: 'Expected Tonight',
+            location: `${riderCity} Central`,
+            duration: '6 hours',
+            metricLabel: 'AQI Level',
+            metricValue: '340',
+            probability: 88,
+            impact: 'Slower delivery speed and rider fatigue',
+            outdoorRisk: 'High',
+        },
+        {
+            id: 'Zone Closure',
+            icon: <AlertTriangle className="h-5 w-5" />,
+            color: 'text-red-400', bg: 'bg-red-500/10', border: 'border-red-500/30',
+            riskLevel: 'Low',
+            timing: 'Potential detours tomorrow',
+            location: riderZone,
+            metricLabel: 'Status',
+            metricValue: 'Partial Closure',
+            probability: 18,
+            impact: 'Localized route changes and lower order density',
+        },
+    ];
+}
 
 const FORECAST = [
     { day: 'Mon', risk: 'Moderate Rain Risk', color: 'text-blue-400', bg: 'bg-blue-500/10' },
@@ -105,31 +149,67 @@ const riskStyles = {
 };
 
 /* ─── Page ─── */
-export function ExplorePage() {
+export function ExplorePage({ riderZone, riderCity, onClaimTriggered }: ExplorePageProps) {
     const [selectedId, setSelectedId] = useState<DisruptionType>('Heavy Rain');
     const [isSimulating, setIsSimulating] = useState(false);
     const [simulatedItems, setSimulatedItems] = useState<string[]>([]);
+    const [triggerFeedback, setTriggerFeedback] = useState<{ kind: 'success' | 'error'; message: string } | null>(null);
     const { addNotification } = useNotificationStore();
 
-    const selected = DISRUPTIONS.find(d => d.id === selectedId)!;
+    const disruptions = buildDisruptions(riderZone, riderCity);
+    const selected = disruptions.find(d => d.id === selectedId)!;
 
-    const handleSimulateClaim = () => {
+    const handleSimulateClaim = async () => {
         setIsSimulating(true);
-        setTimeout(() => {
-            setIsSimulating(false);
-            setSimulatedItems(prev => [...prev, selected.id]);
+        setTriggerFeedback(null);
+        try {
+            const response = await fetch(`${API_BASE_URL}/api/rider/claims/simulate`, {
+                method: 'POST',
+                credentials: 'include',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    eventType: selected.id,
+                    location: selected.location,
+                    riskLevel: selected.riskLevel,
+                    probability: selected.probability,
+                    metricValue: selected.metricValue,
+                }),
+            });
 
-            // 1. Dispatch in-app notification
-            const payout = selected.riskLevel === 'Severe' ? 750 : 520;
+            const result = await response.json();
+            if (!response.ok) {
+                throw new Error(result.message || 'Unable to trigger claim.');
+            }
+
+            setIsSimulating(false);
+            setSimulatedItems(prev => prev.includes(selected.id) ? prev : [...prev, selected.id]);
+            setTriggerFeedback({
+                kind: 'success',
+                message: `Claim created for ${selected.id}. Redirecting you to Claims with an estimated payout of ₹${result.claim.payout}.`,
+            });
+
             addNotification({
                 title: 'Claim Auto-Triggered',
-                message: `Due to ${selected.id} in ${selected.location}`,
+                message: `${selected.id} in ${selected.location} triggered a claim for ₹${result.claim.payout}`,
                 type: 'claim'
             });
 
-            // 2. Dispatch Mock SMS
-            SMS_SERVICE.sendClaimTriggerSMS(selected.id, selected.location, payout);
-        }, 1500);
+            SMS_SERVICE.sendClaimTriggerSMS(selected.id, selected.location, result.claim.payout);
+            onClaimTriggered(result.user, result.claim);
+        } catch (error) {
+            setIsSimulating(false);
+            setTriggerFeedback({
+                kind: 'error',
+                message: error instanceof Error ? error.message : 'Unable to create claim from this event right now.',
+            });
+            addNotification({
+                title: 'Claim Trigger Failed',
+                message: 'Unable to create claim from this event right now.',
+                type: 'alert',
+            });
+        }
     };
 
     const container = { hidden: { opacity: 0 }, visible: { opacity: 1, transition: { staggerChildren: 0.08 } } };
@@ -158,9 +238,9 @@ export function ExplorePage() {
                             <Zap className="h-4 w-4 text-blue-400" />
                             <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Today's Risk Insight</span>
                         </div>
-                        <h2 className="text-xl font-bold text-foreground">Heavy Rain Expected</h2>
+                        <h2 className="text-xl font-bold text-foreground">{selected.id} Expected</h2>
                         <p className="text-sm text-muted-foreground flex items-center gap-1.5 mt-1">
-                            <MapPin className="h-3.5 w-3.5 text-blue-400" /> Chennai South Zone
+                            <MapPin className="h-3.5 w-3.5 text-blue-400" /> {selected.location}
                         </p>
                     </div>
 
@@ -168,13 +248,13 @@ export function ExplorePage() {
                         <div>
                             <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1">Risk Level</p>
                             <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold text-danger bg-danger/10 border border-danger/20">
-                                High
+                                {selected.riskLevel}
                             </span>
                         </div>
                         <div className="h-10 w-px bg-border/50" />
                         <div>
                             <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1">Probability</p>
-                            <p className="text-xl font-black text-blue-400">42<span className="text-sm text-blue-400/70">%</span></p>
+                            <p className="text-xl font-black text-blue-400">{selected.probability}<span className="text-sm text-blue-400/70">%</span></p>
                         </div>
                     </div>
                 </div>
@@ -189,7 +269,7 @@ export function ExplorePage() {
 
                 {/* Horizontal scroll on mobile, grid on desktop */}
                 <div className="flex overflow-x-auto pb-4 -mx-4 px-4 sm:mx-0 sm:px-0 sm:grid sm:grid-cols-2 lg:grid-cols-4 gap-4 snap-x snap-mandatory hide-scrollbar">
-                    {DISRUPTIONS.map(d => {
+                    {disruptions.map(d => {
                         const isSelected = selectedId === d.id;
                         return (
                             <motion.button
@@ -251,22 +331,29 @@ export function ExplorePage() {
                                 </p>
                             </div>
                             
-                            {(selected.riskLevel === 'High' || selected.riskLevel === 'Severe') && (
-                                <button
-                                    onClick={handleSimulateClaim}
-                                    disabled={isSimulating || simulatedItems.includes(selected.id)}
-                                    className="px-4 py-2 bg-primary text-primary-foreground text-sm font-bold rounded-xl shadow-md shadow-primary/20 hover:bg-primary/90 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                                >
-                                    {isSimulating ? (
-                                        <><Loader2 className="w-4 h-4 animate-spin" /> Simulating Trigger...</>
-                                    ) : simulatedItems.includes(selected.id) ? (
-                                        'Event Triggered'
-                                    ) : (
-                                        <><Zap className="w-4 h-4" /> Simulate Claim Trigger</>
-                                    )}
-                                </button>
-                            )}
+                            <button
+                                onClick={handleSimulateClaim}
+                                disabled={isSimulating}
+                                className="px-4 py-2 bg-primary text-primary-foreground text-sm font-bold rounded-xl shadow-md shadow-primary/20 hover:bg-primary/90 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                            >
+                                {isSimulating ? (
+                                    <><Loader2 className="w-4 h-4 animate-spin" /> Simulating Trigger...</>
+                                ) : simulatedItems.includes(selected.id) ? (
+                                    <><Zap className="w-4 h-4" /> Trigger Again</>
+                                ) : (
+                                    <><Zap className="w-4 h-4" /> Simulate Claim Trigger</>
+                                )}
+                            </button>
                         </div>
+
+                        {triggerFeedback && (
+                            <div className={`mx-6 mt-5 rounded-2xl border px-4 py-3 text-sm font-medium ${triggerFeedback.kind === 'success'
+                                ? 'border-success/30 bg-success/10 text-success'
+                                : 'border-danger/30 bg-danger/10 text-danger'
+                                }`}>
+                                {triggerFeedback.message}
+                            </div>
+                        )}
 
                         {/* Details Grid */}
                         <div className="p-6">

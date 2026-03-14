@@ -1,12 +1,14 @@
 import { motion } from 'framer-motion';
 import { ShieldCheck, Wallet } from 'lucide-react';
-import { type RiderProfile } from '../../data/mock';
+import { type InsurancePolicy, type RiderProfile } from '../../data/mock';
 
 interface HeroSectionProps {
     rider: RiderProfile;
+    policy: InsurancePolicy;
+    totalPayouts: number;
 }
 
-export function HeroSection({ rider }: HeroSectionProps) {
+export function HeroSection({ rider, policy, totalPayouts }: HeroSectionProps) {
     const container = {
         hidden: { opacity: 0, y: 20 },
         show: {
@@ -87,7 +89,7 @@ export function HeroSection({ rider }: HeroSectionProps) {
                         <ShieldCheck className="h-5 w-5" />
                     </div>
                     <p className="text-[10px] font-black uppercase text-muted-foreground tracking-wider">Active Policy</p>
-                    <p className="text-xs sm:text-sm font-bold text-foreground mt-0.5 whitespace-nowrap overflow-hidden text-ellipsis">Weather Protection</p>
+                    <p className="text-xs sm:text-sm font-bold text-foreground mt-0.5 whitespace-nowrap overflow-hidden text-ellipsis">{policy.coverageType}</p>
                 </motion.div>
 
                 <motion.div
@@ -99,7 +101,7 @@ export function HeroSection({ rider }: HeroSectionProps) {
                         <Wallet className="h-5 w-5" />
                     </div>
                     <p className="text-[10px] font-black uppercase text-muted-foreground tracking-wider">Total Payouts</p>
-                    <p className="text-xs sm:text-sm font-bold text-foreground mt-0.5 whitespace-nowrap overflow-hidden text-ellipsis">₹1,225 Received</p>
+                    <p className="text-xs sm:text-sm font-bold text-foreground mt-0.5 whitespace-nowrap overflow-hidden text-ellipsis">₹{totalPayouts.toLocaleString('en-IN')} Received</p>
                 </motion.div>
             </div>
         </motion.div>

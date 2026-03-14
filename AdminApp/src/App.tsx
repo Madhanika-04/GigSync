@@ -8,7 +8,7 @@ import RiskZonesPanel from './components/RiskZonesPanel'
 import AnalyticsPanel from './components/AnalyticsPanel'
 import SummaryPanels from './components/SummaryPanels'
 import { ThemeProvider } from './context/ThemeContext'
-import { Alert, Claim, PageId, Platform, Policy, PolicyPlanName, Payout, Rider, RiskZone } from './types'
+import { Alert, Claim, ClaimStatus, PageId, Platform, Policy, PolicyPlanName, Payout, Rider, RiskZone } from './types'
 import { alerts, claims, payouts, policies, policyPlans, riders, riskZones } from './data/mockData'
 import {
   Activity,
@@ -25,15 +25,40 @@ import {
   KeyRound,
 } from 'lucide-react'
 import clsx from 'clsx'
+import { API_BASE_URL, HOMEPAGE_URL } from './config'
 
-type SessionRole = 'admin'
-
-interface AuthAccount {
-  role: SessionRole
-  email: string
-  password: string
+interface SessionUser {
+  id: string
+  role: 'admin'
   name: string
-  riderId?: string
+  email: string
+}
+
+interface AdminApiRider {
+  id: string
+  role: 'rider'
+  name: string
+  email: string
+  selectedPlan: PolicyPlanName | null
+  platform: string | null
+  city: string | null
+  blocked?: boolean
+  createdAt?: string
+  activeClaim?: {
+    status?: 'Processing' | 'Approved' | 'Paid' | 'Rejected'
+  } | null
+}
+
+interface AdminApiClaim {
+  id: string
+  riderId: string
+  riderName: string
+  zone: string
+  disruption: string
+  amount: number
+  status: 'Processing' | 'Approved' | 'Paid' | 'Rejected'
+  triggeredAt: string
+  autoTriggered: boolean
 }
 
 const getPolicyPlanByName = (planName: PolicyPlanName) => policyPlans.find(plan => plan.name === planName) ?? policyPlans[0]
@@ -42,6 +67,136 @@ const getDefaultPlanNameForRisk = (riskLevel: Rider['riskLevel']): PolicyPlanNam
   if (riskLevel === 'High') return 'Premium'
   if (riskLevel === 'Medium') return 'Plus'
   return 'Standard'
+}
+
+const isPolicyPlanName = (value: string | null | undefined): value is PolicyPlanName => {
+  return value === 'Basic' || value === 'Standard' || value === 'Plus' || value === 'Premium' || value === 'Elite'
+}
+
+const normalizePlatform = (platform: string | null | undefined): Platform => {
+  if (platform === 'Swiggy' || platform === 'Zomato' || platform === 'Zepto' || platform === 'Blinkit' || platform === 'Dunzo') {
+    return platform
+  }
+
+  if (typeof platform === 'string') {
+    const lower = platform.trim().toLowerCase()
+    if (lower === 'swiggy') return 'Swiggy'
+    if (lower === 'zomato') return 'Zomato'
+    if (lower === 'zepto') return 'Zepto'
+    if (lower === 'blinkit') return 'Blinkit'
+    if (lower === 'dunzo') return 'Dunzo'
+  }
+
+  return 'Swiggy'
+}
+
+const inferRiskFromPlan = (planName: PolicyPlanName): Rider['riskLevel'] => {
+  if (planName === 'Premium' || planName === 'Elite') return 'High'
+  if (planName === 'Plus' || planName === 'Standard') return 'Medium'
+  return 'Low'
+}
+
+const inferClaimStatus = (status?: 'Processing' | 'Approved' | 'Paid' | 'Rejected'): ClaimStatus => {
+  if (status === 'Approved') return 'Approved'
+  if (status === 'Paid') return 'Paid'
+  if (status === 'Rejected') return 'Rejected'
+  if (status === 'Processing') return 'Triggered'
+  return 'None'
+}
+
+const mapClaimStatusToBackend = (status: Claim['status']): 'Processing' | 'Approved' | 'Rejected' => {
+  if (status === 'Paid') return 'Approved'
+  if (status === 'Approved') return 'Approved'
+  if (status === 'Rejected') return 'Rejected'
+  return 'Processing'
+}
+
+const normalizeDisruptionForDashboard = (disruption?: string): Claim['disruption'] => {
+  if (disruption === 'Heavy Rain') return 'Heavy Rain'
+  if (disruption === 'Extreme Heat') return 'Extreme Heat'
+  if (disruption === 'Air Pollution' || disruption === 'High AQI') return 'High AQI'
+  if (disruption === 'Zone Closure') return 'Zone Closure'
+  if (disruption === 'Flash Flood') return 'Flash Flood'
+  if (disruption === 'Strong Wind') return 'Strong Wind'
+  return 'Heavy Rain'
+}
+
+const mapBackendClaimToDashboardClaim = (claim: AdminApiClaim): Claim => {
+  return {
+    id: claim.id,
+    riderId: `RD${claim.riderId.slice(-4).toUpperCase()}`,
+    backendRiderId: claim.riderId,
+    riderName: claim.riderName,
+    zone: claim.zone || 'Coverage Zone',
+    disruption: normalizeDisruptionForDashboard(claim.disruption),
+    amount: Number(claim.amount) || 0,
+    status: inferClaimStatus(claim.status),
+    triggeredAt: claim.triggeredAt || 'Now',
+    autoTriggered: Boolean(claim.autoTriggered),
+  }
+}
+
+const toClaimSelectionValue = (claim: Claim): string => `${claim.id}::${claim.backendRiderId ?? ''}`
+
+const inferAiScore = (planName: PolicyPlanName): number => {
+  if (planName === 'Elite') return 95
+  if (planName === 'Premium') return 88
+  if (planName === 'Plus') return 66
+  if (planName === 'Standard') return 52
+  return 35
+}
+
+const formatJoinedDate = (createdAt?: string): string => {
+  if (!createdAt) return new Date().toISOString().slice(0, 10)
+  const parsed = new Date(createdAt)
+  if (Number.isNaN(parsed.getTime())) return new Date().toISOString().slice(0, 10)
+  return parsed.toISOString().slice(0, 10)
+}
+
+const cityToZone = (city: string): string => {
+  const normalized = city.trim().toLowerCase()
+  if (normalized.includes('chennai')) return 'Zone A'
+  if (normalized.includes('coimbatore')) return 'North'
+  if (normalized.includes('madurai')) return 'Urban'
+  if (normalized.includes('salem')) return 'Hub'
+  return 'Zone A'
+}
+
+const mapBackendRiderToDashboardRider = (rider: AdminApiRider): Rider => {
+  const planName = isPolicyPlanName(rider.selectedPlan) ? rider.selectedPlan : 'Plus'
+  const selectedPlan = getPolicyPlanByName(planName)
+  const city = (rider.city && rider.city.trim()) ? rider.city.trim() : 'Chennai'
+
+  return {
+    id: `RD${rider.id.slice(-4).toUpperCase()}`,
+    name: rider.name,
+    platform: normalizePlatform(rider.platform),
+    city,
+    zone: cityToZone(city),
+    selectedPlan: planName,
+    riskLevel: inferRiskFromPlan(planName),
+    weeklyPremium: selectedPlan.premium,
+    policyStatus: 'Active',
+    claimStatus: inferClaimStatus(rider.activeClaim?.status),
+    blocked: Boolean(rider.blocked),
+    aiScore: inferAiScore(planName),
+    joinedDate: formatJoinedDate(rider.createdAt),
+  }
+}
+
+const mergeRidersWithBackend = (existingRiders: Rider[], backendRiders: Rider[]): Rider[] => {
+  const merged = [...existingRiders]
+  backendRiders.forEach(incoming => {
+    const existingIndex = merged.findIndex(item => item.id === incoming.id)
+    if (existingIndex >= 0) {
+      merged[existingIndex] = { ...merged[existingIndex], ...incoming }
+      return
+    }
+
+    merged.unshift(incoming)
+  })
+
+  return merged
 }
 
 const planToneStyles: Record<PolicyPlanName, { badge: string; ring: string; glow: string }> = {
@@ -79,6 +234,7 @@ const riskToneStyles: Record<Rider['riskLevel'], string> = {
 }
 
 const newId = (prefix: string, currentCount: number) => `${prefix}${String(currentCount + 1).padStart(3, '0')}`
+const RIDER_SYNC_INTERVAL_MS = 15000
 
 const buildPoliciesForAllRiders = (allRiders: Rider[], basePolicies: Policy[]): Policy[] => {
   let sequence = basePolicies.length
@@ -87,7 +243,7 @@ const buildPoliciesForAllRiders = (allRiders: Rider[], basePolicies: Policy[]): 
     .filter(rider => !riderPolicySet.has(rider.id))
     .map(rider => {
       sequence += 1
-      const planName = getDefaultPlanNameForRisk(rider.riskLevel)
+      const planName = rider.selectedPlan ?? getDefaultPlanNameForRisk(rider.riskLevel)
       const selectedPlan = getPolicyPlanByName(planName)
       return {
         id: `POL${String(sequence).padStart(3, '0')}`,
@@ -100,6 +256,7 @@ const buildPoliciesForAllRiders = (allRiders: Rider[], basePolicies: Policy[]): 
         premium: selectedPlan.premium,
         status: 'Active' as Policy['status'],
         coverage: selectedPlan.coverage,
+        maxPayout: selectedPlan.maxPayout,
       }
     })
 
@@ -118,15 +275,12 @@ const AppLayout: React.FC = () => {
   const [alertsState, setAlertsState] = useState<Alert[]>(alerts)
   const [riskZonesState, setRiskZonesState] = useState<RiskZone[]>(riskZones)
 
-  const [accounts, setAccounts] = useState<AuthAccount[]>([
-    { role: 'admin', email: 'admin@gigsync.ai', password: 'admin123', name: 'Admin' },
-  ])
-
-  const [sessionRole] = useState<SessionRole>('admin')
-  const [authRoleTab] = useState<SessionRole>('admin')
+  const [authState, setAuthState] = useState<'loading' | 'authenticated' | 'unauthenticated'>('loading')
+  const [currentAdmin, setCurrentAdmin] = useState<SessionUser | null>(null)
   const [authEmail, setAuthEmail] = useState('')
   const [authPassword, setAuthPassword] = useState('')
   const [authError, setAuthError] = useState('')
+  const [authSubmitting, setAuthSubmitting] = useState(false)
 
   const [newRiderName, setNewRiderName] = useState('')
   const [newRiderPlatform, setNewRiderPlatform] = useState<Platform>('Swiggy')
@@ -164,7 +318,7 @@ const AppLayout: React.FC = () => {
   const claimStatusSummary = useMemo(() => {
     const total = claimsState.length
     const triggered = claimsState.filter(claim => claim.status === 'Triggered').length
-    const approved = claimsState.filter(claim => claim.status === 'Approved').length
+    const approved = claimsState.filter(claim => claim.status === 'Approved' || claim.status === 'Paid').length
     const rejected = claimsState.filter(claim => claim.status === 'Rejected').length
     const totalAmount = claimsState.reduce((sum, claim) => sum + claim.amount, 0)
     const averageAmount = total ? Math.round(totalAmount / total) : 0
@@ -199,18 +353,155 @@ const AppLayout: React.FC = () => {
     window.setTimeout(() => setAdminNotice(''), 1800)
   }
 
-  const handleAdminLogin = () => {
-    const account = accounts.find(
-      item => item.role === 'admin' && item.email.toLowerCase() === authEmail.toLowerCase() && item.password === authPassword
-    )
+  const goToHomepage = () => {
+    window.location.href = HOMEPAGE_URL
+  }
 
-    if (!account) {
-      setAuthError('Invalid admin credentials')
+  const verifyAdminSession = async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/auth/session`, {
+        credentials: 'include',
+      })
+
+      if (!response.ok) {
+        setAuthState('unauthenticated')
+        return
+      }
+
+      const result = await response.json()
+      if (result.user?.role !== 'admin') {
+        setAuthState('unauthenticated')
+        return
+      }
+
+      setCurrentAdmin(result.user)
+      setAuthState('authenticated')
+      await Promise.all([syncRidersFromBackend(), syncClaimsFromBackend()])
+    } catch {
+      setAuthState('unauthenticated')
+    }
+  }
+
+  const syncRidersFromBackend = async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/admin/riders`, {
+        credentials: 'include',
+      })
+
+      if (!response.ok) {
+        return
+      }
+
+      const result = await response.json()
+      const riderRows: AdminApiRider[] = Array.isArray(result.riders) ? result.riders : []
+      const mappedRiders = riderRows.map(mapBackendRiderToDashboardRider)
+
+      setRidersState(previousRiders => {
+        const mergedRiders = mergeRidersWithBackend(previousRiders, mappedRiders)
+        setPoliciesState(previousPolicies => buildPoliciesForAllRiders(mergedRiders, previousPolicies))
+        return mergedRiders
+      })
+    } catch {
+      // Keep existing local data if backend is unavailable.
+    }
+  }
+
+  const syncClaimsFromBackend = async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/admin/claims`, {
+        credentials: 'include',
+      })
+
+      if (!response.ok) {
+        return
+      }
+
+      const result = await response.json()
+      const claimRows: AdminApiClaim[] = Array.isArray(result.claims) ? result.claims : []
+      setClaimsState(claimRows.map(mapBackendClaimToDashboardClaim))
+    } catch {
+      // Keep existing local data if backend is unavailable.
+    }
+  }
+
+  useEffect(() => {
+    verifyAdminSession()
+  }, [])
+
+  useEffect(() => {
+    if (authState !== 'authenticated') {
       return
     }
 
+    const refreshOnVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        void Promise.all([syncRidersFromBackend(), syncClaimsFromBackend()])
+      }
+    }
+
+    const intervalId = window.setInterval(() => {
+      void Promise.all([syncRidersFromBackend(), syncClaimsFromBackend()])
+    }, RIDER_SYNC_INTERVAL_MS)
+
+    document.addEventListener('visibilitychange', refreshOnVisibility)
+
+    return () => {
+      window.clearInterval(intervalId)
+      document.removeEventListener('visibilitychange', refreshOnVisibility)
+    }
+  }, [authState])
+
+  const handleAdminLogin = async () => {
     setAuthError('')
-    setAuthPassword('')
+    setAuthSubmitting(true)
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/auth/admin/login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          email: authEmail,
+          password: authPassword,
+        }),
+      })
+
+      const result = await response.json().catch(() => ({}))
+      if (!response.ok) {
+        throw new Error(result.message ?? 'Invalid admin credentials')
+      }
+
+      setCurrentAdmin(result.user)
+      setAuthPassword('')
+      setAuthState('authenticated')
+      await Promise.all([syncRidersFromBackend(), syncClaimsFromBackend()])
+      notify(`Welcome back, ${result.user.name}`)
+    } catch (error) {
+      if (error instanceof TypeError) {
+        setAuthError('Unable to reach backend. Start backend server and verify MongoDB Atlas connectivity.')
+        setAuthState('unauthenticated')
+      } else {
+        setAuthError(error instanceof Error ? error.message : 'Invalid admin credentials')
+        setAuthState('unauthenticated')
+      }
+    } finally {
+      setAuthSubmitting(false)
+    }
+  }
+
+  const handleAdminLogout = async () => {
+    try {
+      await fetch(`${API_BASE_URL}/api/auth/logout`, {
+        method: 'POST',
+        credentials: 'include',
+      })
+    } finally {
+      setCurrentAdmin(null)
+      setAuthState('unauthenticated')
+      goToHomepage()
+    }
   }
 
   const createPolicyForRider = (riderId: string, planOverride?: PolicyPlanName) => {
@@ -232,10 +523,19 @@ const AppLayout: React.FC = () => {
       premium: selectedPlan.premium,
       status: 'Active',
       coverage: selectedPlan.coverage,
+      maxPayout: selectedPlan.maxPayout,
     }
 
     setPoliciesState(prev => [newPolicy, ...prev])
-    setRidersState(prev => prev.map(item => (item.id === rider.id ? { ...item, policyStatus: 'Active', weeklyPremium: selectedPlan.premium } : item)))
+    setRidersState(prev => prev.map(item => (item.id === rider.id
+      ? {
+        ...item,
+        selectedPlan: planName,
+        riskLevel: inferRiskFromPlan(planName),
+        policyStatus: 'Active',
+        weeklyPremium: selectedPlan.premium,
+      }
+      : item)))
     setAlertsState(prev => [
       {
         id: newId('AL', prev.length),
@@ -309,6 +609,7 @@ const AppLayout: React.FC = () => {
       platform: newRiderPlatform,
       city: newRiderCity,
       zone: 'Zone A',
+      selectedPlan: 'Plus',
       riskLevel: 'Medium',
       weeklyPremium: defaultPlan.premium,
       policyStatus: 'Active',
@@ -329,6 +630,7 @@ const AppLayout: React.FC = () => {
       premium: defaultPlan.premium,
       status: 'Active',
       coverage: defaultPlan.coverage,
+      maxPayout: defaultPlan.maxPayout,
     }
 
     setRidersState(prev => [createdRider, ...prev])
@@ -361,16 +663,48 @@ const AppLayout: React.FC = () => {
     notify(`Policy ${policyId} deleted`)
   }
 
-  const handleUpdateClaimStatus = (claimId: string, status: Claim['status']) => {
-    setClaimsState(prev => prev.map(claim => (claim.id === claimId ? { ...claim, status } : claim)))
+  const handleUpdateClaimStatus = async (claim: Claim, status: Claim['status']) => {
+    setClaimsState(prev => prev.map(item => (
+      item.id === claim.id && item.riderId === claim.riderId
+        ? { ...item, status }
+        : item
+    )))
+
+    if (authState !== 'authenticated') {
+      return
+    }
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/admin/claims/${encodeURIComponent(claim.id)}/status`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          status: mapClaimStatusToBackend(status),
+          riderId: claim.backendRiderId,
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error('Unable to update claim status on backend')
+      }
+
+      await syncClaimsFromBackend()
+    } catch {
+      await syncClaimsFromBackend()
+      notify('Unable to verify claim right now. Please try again.')
+    }
   }
 
-  const handleMarkClaimPaid = () => {
+  const handleMarkClaimPaid = async () => {
     if (!selectedClaimId) return
-    const claim = claimsState.find(item => item.id === selectedClaimId)
+    const [claimId, selectedBackendRiderId] = selectedClaimId.split('::')
+    const claim = claimsState.find(item => item.id === claimId && (selectedBackendRiderId ? item.backendRiderId === selectedBackendRiderId : true))
     if (!claim) return
 
-    handleUpdateClaimStatus(claim.id, 'Approved')
+    await handleUpdateClaimStatus(claim, 'Approved')
     const payoutId = newId('PAY', payoutsState.length)
     const newPayout: Payout = {
       id: payoutId,
@@ -384,6 +718,63 @@ const AppLayout: React.FC = () => {
 
     setPayoutsState(prev => [newPayout, ...prev])
     notify(`Payout ${payoutId} processed`)
+  }
+
+  const handleBlockRiderFromClaim = async (claim: Claim) => {
+    if (authState !== 'authenticated') {
+      return
+    }
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/admin/claims/${encodeURIComponent(claim.id)}/block-rider`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          riderId: claim.backendRiderId,
+        }),
+      })
+
+      const result = await response.json().catch(() => ({}))
+      if (!response.ok) {
+        throw new Error(result.message ?? 'Unable to block rider')
+      }
+
+      await Promise.all([syncRidersFromBackend(), syncClaimsFromBackend()])
+      notify(`${claim.riderName} has been blocked`)
+    } catch (error) {
+      notify(error instanceof Error ? error.message : 'Unable to block rider')
+    }
+  }
+
+  const handleUnblockRiderFromClaim = async (claim: Claim) => {
+    if (authState !== 'authenticated') {
+      return
+    }
+
+    if (!claim.backendRiderId) {
+      notify('Unable to unblock rider right now.')
+      return
+    }
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/admin/riders/${encodeURIComponent(claim.backendRiderId)}/unblock`, {
+        method: 'PATCH',
+        credentials: 'include',
+      })
+
+      const result = await response.json().catch(() => ({}))
+      if (!response.ok) {
+        throw new Error(result.message ?? 'Unable to unblock rider')
+      }
+
+      await Promise.all([syncRidersFromBackend(), syncClaimsFromBackend()])
+      notify(`${claim.riderName} has been unblocked`)
+    } catch (error) {
+      notify(error instanceof Error ? error.message : 'Unable to unblock rider')
+    }
   }
 
   const handleResolveAlert = (alertId: string) => {
@@ -432,6 +823,9 @@ const AppLayout: React.FC = () => {
           <p className="mt-6 text-xs dark:text-[#4a6080] text-gray-500">
             Demo credentials: admin@gigsync.ai / admin123
           </p>
+          <button onClick={goToHomepage} className="mt-6 inline-flex items-center justify-center rounded-xl border dark:border-[#1a2540] border-gray-200 px-3 py-2 text-xs font-semibold dark:text-gray-200 text-gray-700 hover:bg-gray-100 dark:hover:bg-[#0a1224] transition-colors">
+            Back to Homepage
+          </button>
         </div>
 
         <div className="rounded-3xl border dark:border-[#1a2540] border-gray-200 dark:bg-[#0d1528] bg-white p-8">
@@ -450,7 +844,7 @@ const AppLayout: React.FC = () => {
               placeholder="Password"
               className="w-full px-3 py-2 rounded-xl text-sm dark:bg-[#0a1224] bg-gray-50 border dark:border-[#1a2540] border-gray-200 dark:text-gray-200 text-gray-800"
             />
-            <button onClick={handleAdminLogin} className="w-full inline-flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-sm font-semibold bg-blue-600 text-white hover:bg-blue-500 transition-colors">
+            <button disabled={authSubmitting} onClick={handleAdminLogin} className="w-full inline-flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-sm font-semibold bg-blue-600 text-white hover:bg-blue-500 transition-colors disabled:opacity-70 disabled:cursor-wait">
               <KeyRound size={14} /> Login as Admin
             </button>
           </div>
@@ -722,11 +1116,11 @@ const AppLayout: React.FC = () => {
           className="px-3 py-2 rounded-xl text-xs dark:bg-[#0a1224] bg-gray-50 border dark:border-[#1a2540] border-gray-200 dark:text-gray-200 text-gray-700"
         >
           <option value="">Select claim to payout</option>
-          {claimsState.map(claim => (
-            <option key={claim.id} value={claim.id}>{claim.id} • {claim.riderName}</option>
+          {claimsState.filter(claim => claim.status === 'Triggered').map(claim => (
+            <option key={`${claim.id}-${claim.riderId}`} value={toClaimSelectionValue(claim)}>{claim.id} • {claim.riderName}</option>
           ))}
         </select>
-        <button onClick={handleMarkClaimPaid} className="inline-flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold bg-cyan-600 text-white hover:bg-cyan-500 transition-colors">
+        <button onClick={() => { void handleMarkClaimPaid() }} className="inline-flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold bg-cyan-600 text-white hover:bg-cyan-500 transition-colors">
           <Wallet size={12} /> Mark as Paid
         </button>
       </div>
@@ -747,17 +1141,45 @@ const AppLayout: React.FC = () => {
             <tbody>
               {claimsState.map(claim => (
                 <tr key={claim.id} className="border-b dark:border-[#1a2540]/50 border-gray-50">
+                  {(() => {
+                    const linkedRider = ridersState.find(item => item.id === claim.riderId)
+                    const isBlocked = Boolean(linkedRider?.blocked)
+                    return (
+                      <>
                   <td className="px-3 py-2 text-amber-400 font-mono">{claim.id}</td>
                   <td className="px-3 py-2 dark:text-gray-200 text-gray-800">{claim.riderName}</td>
                   <td className="px-3 py-2 dark:text-gray-300 text-gray-700">₹{claim.amount}</td>
                   <td className="px-3 py-2 dark:text-gray-300 text-gray-700">{claim.status}</td>
                   <td className="px-3 py-2">
                     <div className="flex items-center gap-1">
-                      <button onClick={() => handleUpdateClaimStatus(claim.id, 'Approved')} className="px-2 py-1 rounded-lg text-[10px] bg-emerald-500/15 text-emerald-400">Approve</button>
-                      <button onClick={() => handleUpdateClaimStatus(claim.id, 'Rejected')} className="px-2 py-1 rounded-lg text-[10px] bg-red-500/15 text-red-400">Reject</button>
-                      <button onClick={() => handleUpdateClaimStatus(claim.id, 'Triggered')} className="px-2 py-1 rounded-lg text-[10px] bg-blue-500/15 text-blue-400">Retrigger</button>
+                      {claim.status === 'Paid' ? (
+                        isBlocked ? (
+                          <button
+                            onClick={() => { void handleUnblockRiderFromClaim(claim) }}
+                            className="px-2 py-1 rounded-lg text-[10px] bg-emerald-500/15 text-emerald-400 hover:bg-emerald-500/25 transition-colors"
+                          >
+                            Unblock User
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => { void handleBlockRiderFromClaim(claim) }}
+                            className="px-2 py-1 rounded-lg text-[10px] bg-red-500/15 text-red-400 hover:bg-red-500/25 transition-colors"
+                          >
+                            Block User
+                          </button>
+                        )
+                      ) : (
+                        <>
+                          <button onClick={() => { void handleUpdateClaimStatus(claim, 'Approved') }} className="px-2 py-1 rounded-lg text-[10px] bg-emerald-500/15 text-emerald-400">Approve &amp; Pay</button>
+                          <button onClick={() => { void handleUpdateClaimStatus(claim, 'Rejected') }} className="px-2 py-1 rounded-lg text-[10px] bg-red-500/15 text-red-400">Reject</button>
+                          <button onClick={() => { void handleUpdateClaimStatus(claim, 'Triggered') }} className="px-2 py-1 rounded-lg text-[10px] bg-blue-500/15 text-blue-400">Retrigger</button>
+                        </>
+                      )}
                     </div>
                   </td>
+                      </>
+                    )
+                  })()}
                 </tr>
               ))}
             </tbody>
@@ -1045,6 +1467,22 @@ const AppLayout: React.FC = () => {
     )
   }
 
+  if (authState === 'loading') {
+    return (
+      <div className="min-h-screen dark:bg-[#060a14] bg-[#f3f6fb] flex items-center justify-center px-4">
+        <div className="rounded-3xl border dark:border-[#1a2540] border-gray-200 dark:bg-[#0d1528] bg-white px-8 py-6 text-center">
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] dark:text-cyan-400 text-blue-600">GigSync Admin</p>
+          <h1 className="mt-3 text-2xl font-bold dark:text-white text-gray-900">Checking your session</h1>
+          <p className="mt-2 text-sm dark:text-[#6b80a3] text-gray-500">Connecting the admin dashboard to the shared backend.</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (authState === 'unauthenticated' || !currentAdmin) {
+    return renderAuthPortal()
+  }
+
   return (
     <div className="min-h-screen dark:bg-[#060a14] bg-[#f3f6fb] transition-colors duration-300">
       <Sidebar
@@ -1054,7 +1492,13 @@ const AppLayout: React.FC = () => {
         onToggleCollapse={() => setSidebarCollapsed(prev => !prev)}
       />
 
-      <Navbar activePage={activePage} sidebarWidth={sidebarWidth} />
+      <Navbar
+        activePage={activePage}
+        sidebarWidth={sidebarWidth}
+        adminName={currentAdmin.name}
+        adminEmail={currentAdmin.email}
+        onLogout={handleAdminLogout}
+      />
 
       <main
         className="pt-20 pb-6 px-4 md:px-6 transition-all duration-300"

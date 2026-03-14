@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { Search, Bell, Sun, Moon, User, ChevronDown } from 'lucide-react'
+import { Search, Bell, Sun, Moon, User, LogOut } from 'lucide-react'
 import clsx from 'clsx'
 import { useTheme } from '../context/ThemeContext'
 import { PageId } from '../types'
@@ -7,6 +7,9 @@ import { PageId } from '../types'
 interface NavbarProps {
   activePage: PageId
   sidebarWidth: number
+  adminName: string
+  adminEmail: string
+  onLogout: () => void
 }
 
 const pageTitles: Record<PageId, string> = {
@@ -29,7 +32,7 @@ const pageSubtitles: Record<PageId, string> = {
   settings: 'Platform configuration',
 }
 
-const Navbar: React.FC<NavbarProps> = ({ activePage, sidebarWidth }) => {
+const Navbar: React.FC<NavbarProps> = ({ activePage, sidebarWidth, adminName, adminEmail, onLogout }) => {
   const { isDark, toggleTheme } = useTheme()
   const [searchFocused, setSearchFocused] = useState(false)
   const [notifOpen, setNotifOpen] = useState(false)
@@ -136,7 +139,7 @@ const Navbar: React.FC<NavbarProps> = ({ activePage, sidebarWidth }) => {
       </button>
 
       {/* Admin Profile */}
-      <button className={clsx(
+      <button onClick={onLogout} className={clsx(
         'hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-xl border',
         'dark:bg-[#0d1528] bg-gray-100 dark:hover:bg-[#131e38] hover:bg-gray-200',
         'dark:border-[#1a2540] border-gray-200',
@@ -146,10 +149,10 @@ const Navbar: React.FC<NavbarProps> = ({ activePage, sidebarWidth }) => {
           <User size={12} className="text-white" />
         </div>
         <div className="text-left hidden lg:block">
-          <div className="text-xs font-semibold dark:text-gray-200 text-gray-800 leading-tight">Admin</div>
-          <div className="text-[10px] dark:text-[#4a6080] text-gray-500 leading-tight">GigSync</div>
+          <div className="text-xs font-semibold dark:text-gray-200 text-gray-800 leading-tight">{adminName}</div>
+          <div className="text-[10px] dark:text-[#4a6080] text-gray-500 leading-tight">{adminEmail}</div>
         </div>
-        <ChevronDown size={12} className="dark:text-[#4a6080] text-gray-400" />
+        <LogOut size={12} className="dark:text-[#4a6080] text-gray-400" />
       </button>
     </header>
   )

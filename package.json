@@ -1,0 +1,15 @@
+{
+  "name": "gigsync-workspace",
+  "private": true,
+  "scripts": {
+    "dev": "concurrently \"npm --prefix backend run dev\" \"npm --prefix Homepage run dev\" \"npm --prefix RiderApp run dev\" \"npm --prefix AdminApp run dev\"",
+    "dev:backend": "npm --prefix backend run dev",
+    "dev:homepage": "npm --prefix Homepage run dev",
+    "dev:rider": "npm --prefix RiderApp run dev",
+    "dev:admin": "npm --prefix AdminApp run dev",
+    "build": "npm --prefix Homepage run build && npm --prefix RiderApp run build && npm --prefix AdminApp run build"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1"
+  }
+}

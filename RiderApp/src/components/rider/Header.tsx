@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Bell, User, Sun, Moon, CloudRain, Zap, IndianRupee, CheckCircle, CheckCheck, ShieldCheck, FileText } from 'lucide-react';
+import { Bell, User, Sun, Moon, CloudRain, Zap, IndianRupee, CheckCircle, CheckCheck, ShieldCheck, FileText, LogOut } from 'lucide-react';
 import { type ViewType } from './BottomNav';
 import { useNotificationStore, type Notification } from '../../store/notificationStore';
 
@@ -8,9 +8,11 @@ interface HeaderProps {
     theme: 'light' | 'dark';
     toggleTheme: () => void;
     setView: (view: ViewType) => void;
+    riderName: string;
+    onLogout: () => void;
 }
 
-export function RiderHeader({ theme, toggleTheme, setView }: HeaderProps) {
+export function RiderHeader({ theme, toggleTheme, setView, riderName, onLogout }: HeaderProps) {
     const [showNotifs, setShowNotifs] = useState(false);
     const notifRef = useRef<HTMLDivElement>(null);
 
@@ -51,8 +53,9 @@ export function RiderHeader({ theme, toggleTheme, setView }: HeaderProps) {
             </div>
 
             {/* Desktop: page title placeholder area */}
-            <div className="hidden lg:block">
+            <div className="hidden lg:flex flex-col">
                 <span className="text-sm font-semibold text-muted-foreground">Rider Dashboard</span>
+                <span className="text-xs font-semibold text-foreground/80">{riderName}</span>
             </div>
 
             {/* Right actions */}
@@ -165,6 +168,14 @@ export function RiderHeader({ theme, toggleTheme, setView }: HeaderProps) {
                     className="lg:hidden w-9 h-9 rounded-xl bg-secondary border border-border/40 flex items-center justify-center overflow-hidden transition-all hover:scale-110 active:scale-90"
                 >
                     <User className="w-5 h-5 text-muted-foreground" />
+                </button>
+
+                <button
+                    onClick={onLogout}
+                    className="hidden sm:inline-flex items-center gap-2 rounded-xl border border-border/40 px-3 py-2 text-xs font-semibold text-muted-foreground hover:text-foreground hover:bg-secondary transition-all"
+                >
+                    <LogOut className="w-4 h-4" />
+                    Logout
                 </button>
             </div>
         </header>

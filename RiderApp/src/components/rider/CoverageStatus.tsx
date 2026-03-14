@@ -3,9 +3,11 @@ import { ShieldCheck, ShieldAlert } from 'lucide-react';
 
 interface CoverageStatusProps {
     isActive: boolean;
+    planName: string;
+    riskMessage: string;
 }
 
-export function CoverageStatus({ isActive }: CoverageStatusProps) {
+export function CoverageStatus({ isActive, planName, riskMessage }: CoverageStatusProps) {
     return (
         <motion.div
             initial={{ opacity: 0, y: 10 }}
@@ -40,7 +42,7 @@ export function CoverageStatus({ isActive }: CoverageStatusProps) {
                     </h2>
                     <p className="text-sm font-medium text-foreground/80 leading-relaxed max-w-sm">
                         {isActive 
-                            ? 'Your income protection shield is actively monitoring disruptions in your delivery zone.'
+                            ? `${planName} is actively monitoring disruptions for your ${riskMessage.toLowerCase()}.`
                             : 'Your income protection shield is currently paused. Please review your active policies.'
                         }
                     </p>

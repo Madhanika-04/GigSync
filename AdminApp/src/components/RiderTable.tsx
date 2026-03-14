@@ -19,6 +19,7 @@ const claimBadge: Record<ClaimStatus, string> = {
   None: 'bg-gray-500/15 text-gray-400',
   Triggered: 'bg-blue-500/15 text-blue-400',
   Approved: 'bg-emerald-500/15 text-emerald-400',
+  Paid: 'bg-cyan-500/15 text-cyan-400',
   Rejected: 'bg-red-500/15 text-red-400',
 }
 
@@ -57,6 +58,10 @@ const RiderTable: React.FC<RiderTableProps> = ({ riders, policies, claims, payou
 
   const selectedRider = useMemo(() => riders.find(r => r.id === selectedRiderId) ?? null, [riders, selectedRiderId])
   const riderPolicies = useMemo(() => (selectedRider ? policies.filter(policy => policy.riderId === selectedRider.id) : []), [policies, selectedRider])
+  const activeRiderPolicy = useMemo(
+    () => riderPolicies.find(policy => policy.status === 'Active') ?? riderPolicies[0] ?? null,
+    [riderPolicies],
+  )
   const riderClaims = useMemo(() => (selectedRider ? claims.filter(claim => claim.riderId === selectedRider.id) : []), [claims, selectedRider])
   const riderPayouts = useMemo(() => (selectedRider ? payouts.filter(payout => payout.riderId === selectedRider.id) : []), [payouts, selectedRider])
   const claimSettlements = useMemo(() => {
@@ -83,8 +88,10 @@ const RiderTable: React.FC<RiderTableProps> = ({ riders, policies, claims, payou
       .sort((a, b) => {
         const va = a[sortCol]
         const vb = b[sortCol]
-        if (va < vb) return sortAsc ? -1 : 1
-        if (va > vb) return sortAsc ? 1 : -1
+        const normalizedA = typeof va === 'number' ? va : String(va ?? '')
+        const normalizedB = typeof vb === 'number' ? vb : String(vb ?? '')
+        if (normalizedA < normalizedB) return sortAsc ? -1 : 1
+        if (normalizedA > normalizedB) return sortAsc ? 1 : -1
         return 0
       })
   }, [search, platformFilter, cityFilter, riskFilter, sortCol, sortAsc])
@@ -281,8 +288,18 @@ const RiderTable: React.FC<RiderTableProps> = ({ riders, policies, claims, payou
                       <p className="mt-1 font-semibold dark:text-gray-100 text-gray-800">₹{selectedRider.weeklyPremium}</p>
                     </div>
                     <div>
+                      <p className="dark:text-[#6b80a3] text-gray-500">Selected Plan</p>
+                      <p className="mt-1 font-semibold dark:text-gray-100 text-gray-800">{selectedRider.selectedPlan}</p>
+                    </div>
+                    <div>
                       <p className="dark:text-[#6b80a3] text-gray-500">Policy Status</p>
                       <p className="mt-1"><span className={clsx('badge', policyBadge[selectedRider.policyStatus])}>{selectedRider.policyStatus}</span></p>
+                    </div>
+                    <div>
+                      <p className="dark:text-[#6b80a3] text-gray-500">Max Payout / Event</p>
+                      <p className="mt-1 font-semibold dark:text-gray-100 text-gray-800">
+                        ₹{activeRiderPolicy?.maxPayout ?? 0}
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -326,6 +343,7 @@ const RiderTable: React.FC<RiderTableProps> = ({ riders, policies, claims, payou
                           <span className={clsx('badge', policyBadge[policy.status])}>{policy.status}</span>
                         </div>
                         <p className="mt-1 dark:text-gray-300 text-gray-700">Coverage: ₹{policy.coverage}</p>
+                        <p className="dark:text-gray-300 text-gray-700">Max payout: ₹{policy.maxPayout}</p>
                         <p className="dark:text-[#6b80a3] text-gray-500">{policy.startDate} to {policy.endDate}</p>
                       </div>
                     ))}

@@ -1,7 +1,7 @@
 export type RiskLevel = 'Low' | 'Medium' | 'High'
 export type PolicyStatus = 'Active' | 'Pending' | 'Expired'
 export type PolicyPlanName = 'Basic' | 'Standard' | 'Plus' | 'Premium' | 'Elite'
-export type ClaimStatus = 'None' | 'Triggered' | 'Approved' | 'Rejected'
+export type ClaimStatus = 'None' | 'Triggered' | 'Approved' | 'Paid' | 'Rejected'
 export type Platform = 'Swiggy' | 'Zomato' | 'Zepto' | 'Blinkit' | 'Dunzo'
 export type AlertPriority = 'critical' | 'high' | 'medium' | 'info'
 export type AlertType = 'weather' | 'aqi' | 'heat' | 'claim' | 'fraud' | 'zone'
@@ -13,10 +13,12 @@ export interface Rider {
   platform: Platform
   city: string
   zone: string
+  selectedPlan: PolicyPlanName
   riskLevel: RiskLevel
   weeklyPremium: number
   policyStatus: PolicyStatus
   claimStatus: ClaimStatus
+  blocked?: boolean
   aiScore: number
   joinedDate: string
 }
@@ -56,6 +58,7 @@ export interface Policy {
   premium: number
   status: PolicyStatus
   coverage: number
+  maxPayout: number
 }
 
 export interface PolicyPlan {
@@ -63,6 +66,7 @@ export interface PolicyPlan {
   name: PolicyPlanName
   premium: number
   coverage: number
+  maxPayout: number
   description: string
   recommendedFor: string
 }
@@ -70,6 +74,7 @@ export interface PolicyPlan {
 export interface Claim {
   id: string
   riderId: string
+  backendRiderId?: string
   riderName: string
   zone: string
   disruption: DisruptionType

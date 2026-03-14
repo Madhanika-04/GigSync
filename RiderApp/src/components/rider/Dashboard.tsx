@@ -7,11 +7,19 @@ import { PayoutSection } from './PayoutSection';
 import {
     MOCK_RIDER,
     RIDER_ALERTS,
-    RIDER_CLAIMS,
-    RIDER_PAYOUTS
+    RIDER_CLAIMS
 } from '../../data/mock';
+import { type RiderProfile, type InsurancePolicy, type RiderPayout } from '../../data/mock';
 
-export function Dashboard() {
+interface DashboardProps {
+    rider: RiderProfile;
+    policy: InsurancePolicy;
+    totalPayouts: number;
+    payoutHistory: RiderPayout[];
+    riskMessage: string;
+}
+
+export function Dashboard({ rider, policy, totalPayouts, payoutHistory, riskMessage }: DashboardProps) {
     return (
         <motion.div
             initial={{ opacity: 0 }}
@@ -20,10 +28,10 @@ export function Dashboard() {
             className="space-y-8"
         >
             {/* ── Row 1: Hero (Rider overview) ── */}
-            <HeroSection rider={MOCK_RIDER} />
+            <HeroSection rider={rider ?? MOCK_RIDER} policy={policy} totalPayouts={totalPayouts} />
 
             {/* ── Row 2: Coverage Status ── */}
-            <CoverageStatus isActive={true} />
+            <CoverageStatus isActive={true} planName={policy.coverageType} riskMessage={riskMessage} />
 
             {/* ── Row 3: Live Disruption Alerts ── */}
             <DynamicAlerts alerts={RIDER_ALERTS} />
@@ -31,7 +39,7 @@ export function Dashboard() {
             {/* ── Row 4: Active Claim Status + Recent Payout Summary ── */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <ClaimStatusCard claims={RIDER_CLAIMS} />
-                <PayoutSection payouts={RIDER_PAYOUTS} />
+                <PayoutSection payouts={payoutHistory} />
             </div>
             
         </motion.div>

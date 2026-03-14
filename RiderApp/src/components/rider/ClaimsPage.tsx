@@ -10,7 +10,7 @@ import {
 
 /* ─── Types ─── */
 type ClaimStatus = 'Processing' | 'Approved' | 'Paid' | 'Rejected';
-type DisruptionType = 'Heavy Rain' | 'Pollution' | 'Extreme Heat' | 'Zone Closure';
+type DisruptionType = 'Heavy Rain' | 'Pollution' | 'Air Pollution' | 'Extreme Heat' | 'Zone Closure';
 
 interface Claim {
     id: string;
@@ -27,32 +27,13 @@ interface Claim {
     aqiLevel?: number;
 }
 
-/* ─── Dummy Data ─── */
-const ACTIVE_CLAIM: Claim = {
-    id: 'CLM-204',
-    date: '13 Mar 2025',
-    disruption: 'Heavy Rain',
-    location: 'Chennai South',
-    incomeLoss: 550,
-    payout: 520,
-    status: 'Processing',
-    rainfallMm: 92,
-    ordersDropped: 5,
-    paymentMethod: 'UPI',
-    txnId: 'TXN8891',
-};
-
-const CLAIM_HISTORY: Claim[] = [
-    { id: 'CLM-203', date: '12 Mar', disruption: 'Heavy Rain', location: 'Chennai North', incomeLoss: 580, payout: 540, status: 'Paid', rainfallMm: 74, ordersDropped: 4, paymentMethod: 'UPI', txnId: 'TXN8840' },
-    { id: 'CLM-202', date: '10 Mar', disruption: 'Pollution', location: 'Coimbatore', incomeLoss: 310, payout: 300, status: 'Paid', aqiLevel: 320, ordersDropped: 3, paymentMethod: 'UPI', txnId: 'TXN8723' },
-    { id: 'CLM-201', date: '8 Mar', disruption: 'Extreme Heat', location: 'Madurai', incomeLoss: 280, payout: 260, status: 'Approved', ordersDropped: 2, paymentMethod: 'UPI', txnId: 'TXN8612' },
-    { id: 'CLM-198', date: '5 Mar', disruption: 'Zone Closure', location: 'Chennai East', incomeLoss: 420, payout: 400, status: 'Paid', ordersDropped: 6, paymentMethod: 'UPI', txnId: 'TXN8530' },
-    { id: 'CLM-195', date: '2 Mar', disruption: 'Pollution', location: 'Chennai West', incomeLoss: 0, payout: 0, status: 'Rejected', aqiLevel: 180, ordersDropped: 1 },
-    { id: 'CLM-192', date: '28 Feb', disruption: 'Heavy Rain', location: 'Tambaram', incomeLoss: 340, payout: 310, status: 'Paid', rainfallMm: 55, ordersDropped: 3, paymentMethod: 'UPI', txnId: 'TXN8344' },
-    { id: 'CLM-188', date: '24 Feb', disruption: 'Extreme Heat', location: 'Velachery', incomeLoss: 290, payout: 270, status: 'Paid', ordersDropped: 2, paymentMethod: 'UPI', txnId: 'TXN8210' },
-];
-
 const PROGRESS_STEPS = ['Triggered', 'Validating', 'Approved', 'Paid'];
+
+interface ClaimsPageProps {
+    activeClaim: Claim | null;
+    claimHistory: Claim[];
+    riderZone: string;
+}
 
 /* ─── Helpers ─── */
 const statusStyles: Record<ClaimStatus, { bg: string; text: string; icon: React.ReactNode }> = {
@@ -65,6 +46,7 @@ const statusStyles: Record<ClaimStatus, { bg: string; text: string; icon: React.
 const disruptionIcon: Record<DisruptionType, React.ReactNode> = {
     'Heavy Rain': <CloudRain className="h-4 w-4" />,
     'Pollution': <Wind className="h-4 w-4" />,
+    'Air Pollution': <Wind className="h-4 w-4" />,
     'Extreme Heat': <Thermometer className="h-4 w-4" />,
     'Zone Closure': <XCircle className="h-4 w-4" />,
 };
@@ -86,17 +68,23 @@ function StatusBadge({ status }: { status: ClaimStatus }) {
 }
 
 /* ─── Main Page ─── */
-export function ClaimsPage() {
+export function ClaimsPage({ activeClaim, claimHistory, riderZone }: ClaimsPageProps) {
     const [selectedClaim, setSelectedClaim] = useState<Claim | null>(null);
     const [reviewOpen, setReviewOpen] = useState(false);
     const [selectedReasons, setSelectedReasons] = useState<string[]>([]);
     const [othersText, setOthersText] = useState("");
 
-    const activeClaimPayout = ACTIVE_CLAIM && ACTIVE_CLAIM.status === 'Paid' ? ACTIVE_CLAIM.payout : 0;
-    const totalPayout = CLAIM_HISTORY.filter(c => c.status === 'Paid').reduce((a, c) => a + c.payout, 0) + activeClaimPayout;
-    const approved = CLAIM_HISTORY.filter(c => c.status === 'Approved' || c.status === 'Paid').length + (ACTIVE_CLAIM && (ACTIVE_CLAIM.status === 'Approved' || ACTIVE_CLAIM.status === 'Paid') ? 1 : 0);
-    const pending = CLAIM_HISTORY.filter(c => c.status === 'Processing').length + (ACTIVE_CLAIM && ACTIVE_CLAIM.status === 'Processing' ? 1 : 0);
-    const total = CLAIM_HISTORY.length + (ACTIVE_CLAIM ? 1 : 0);
+    const activeClaimPayout = activeClaim && activeClaim.status === 'Paid' ? activeClaim.payout : 0;
+    const totalPayout = claimHistory.filter(c => c.status === 'Paid').reduce((a, c) => a + c.payout, 0) + activeClaimPayout;
+    const approved = claimHistory.filter(c => c.status === 'Approved' || c.status === 'Paid').length + (activeClaim && (activeClaim.status === 'Approved' || activeClaim.status === 'Paid') ? 1 : 0);
+    const pending = claimHistory.filter(c => c.status === 'Processing').length + (activeClaim && activeClaim.status === 'Processing' ? 1 : 0);
+    const total = claimHistory.length + (activeClaim ? 1 : 0);
+    const contextTimestamp = new Intl.DateTimeFormat('en-IN', {
+        day: 'numeric',
+        month: 'short',
+        hour: 'numeric',
+        minute: '2-digit',
+    }).format(new Date());
 
     const container = {
         hidden: { opacity: 0 },
@@ -146,14 +134,14 @@ export function ClaimsPage() {
             </motion.div>
 
             {/* ─── Section 2 + 3: Active Claim + Progress ─── */}
-            {ACTIVE_CLAIM && (
+            {activeClaim && (
                 <motion.div variants={item} className="bg-card border border-border/50 rounded-2xl shadow-sm overflow-hidden">
                     <div className="p-6 border-b border-border/30 flex items-center justify-between">
                         <div className="flex items-center gap-2">
                             <Activity className="h-4 w-4 text-warning" />
                             <h2 className="text-base font-bold text-foreground">Active Claim</h2>
                         </div>
-                        <StatusBadge status={ACTIVE_CLAIM.status} />
+                        <StatusBadge status={activeClaim.status} />
                     </div>
 
                     <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -161,10 +149,10 @@ export function ClaimsPage() {
                         <div className="space-y-4">
                             <div className="grid grid-cols-2 gap-4">
                                 {[
-                                    { label: 'Claim ID', value: ACTIVE_CLAIM.id },
-                                    { label: 'Trigger Event', value: ACTIVE_CLAIM.disruption },
-                                    { label: 'Location', value: ACTIVE_CLAIM.location },
-                                    { label: 'Date', value: ACTIVE_CLAIM.date },
+                                    { label: 'Claim ID', value: activeClaim.id },
+                                    { label: 'Trigger Event', value: activeClaim.disruption },
+                                    { label: 'Location', value: activeClaim.location },
+                                    { label: 'Date', value: activeClaim.date },
                                 ].map(({ label, value }) => (
                                     <div key={label}>
                                         <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground/70 mb-1">{label}</p>
@@ -175,11 +163,11 @@ export function ClaimsPage() {
                             <div className="flex gap-4 pt-2">
                                 <div className="flex-1 bg-muted/20 border border-border/30 rounded-xl p-3 text-center">
                                     <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Income Loss</p>
-                                    <p className="text-base font-bold text-danger mt-1">₹{ACTIVE_CLAIM.incomeLoss}</p>
+                                    <p className="text-base font-bold text-danger mt-1">₹{activeClaim.incomeLoss}</p>
                                 </div>
                                 <div className="flex-1 bg-primary/5 border border-primary/20 rounded-xl p-3 text-center">
                                     <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Expected Payout</p>
-                                    <p className="text-base font-bold text-primary mt-1">₹{ACTIVE_CLAIM.payout}</p>
+                                    <p className="text-base font-bold text-primary mt-1">₹{activeClaim.payout}</p>
                                 </div>
                             </div>
                         </div>
@@ -192,12 +180,12 @@ export function ClaimsPage() {
                                 <div className="absolute top-3.5 left-0 right-0 h-0.5 bg-border/40 mx-8" />
                                 <div
                                     className="absolute top-3.5 left-0 h-0.5 bg-primary mx-8 transition-all duration-700"
-                                    style={{ width: `calc(${(activeStep(ACTIVE_CLAIM.status) / (PROGRESS_STEPS.length - 1)) * 100}% - 4rem` }}
+                                    style={{ width: `calc(${(activeStep(activeClaim.status) / (PROGRESS_STEPS.length - 1)) * 100}% - 4rem` }}
                                 />
 
                                 {PROGRESS_STEPS.map((step, i) => {
-                                    const done = i < activeStep(ACTIVE_CLAIM.status) + 1;
-                                    const current = i === activeStep(ACTIVE_CLAIM.status);
+                                    const done = i < activeStep(activeClaim.status) + 1;
+                                    const current = i === activeStep(activeClaim.status);
                                     return (
                                         <div key={step} className="relative z-10 flex flex-col items-center gap-2">
                                             <div className={`w-7 h-7 rounded-full border-2 flex items-center justify-center transition-all duration-300 ${current ? 'border-primary bg-primary text-primary-foreground scale-110 shadow-md shadow-primary/30'
@@ -223,9 +211,11 @@ export function ClaimsPage() {
                         <FileText className="h-4 w-4 text-muted-foreground" />
                         <h2 className="text-base font-bold text-foreground">Claim History</h2>
                     </div>
-                    <span className="text-xs font-semibold text-muted-foreground">{CLAIM_HISTORY.length} claims</span>
+                    <span className="text-xs font-semibold text-muted-foreground">{claimHistory.length} claims</span>
                 </div>
 
+                {claimHistory.length > 0 && (
+                <>
                 {/* Desktop Table */}
                 <div className="hidden md:block overflow-x-auto">
                     <table className="w-full">
@@ -238,7 +228,7 @@ export function ClaimsPage() {
                             </tr>
                         </thead>
                         <tbody>
-                            {CLAIM_HISTORY.map((claim, i) => (
+                            {claimHistory.map((claim, i) => (
                                 <motion.tr
                                     key={claim.id}
                                     initial={{ opacity: 0, x: -10 }}
@@ -273,7 +263,7 @@ export function ClaimsPage() {
 
                 {/* Mobile Cards */}
                 <div className="md:hidden divide-y divide-border/30">
-                    {CLAIM_HISTORY.map((claim, i) => (
+                    {claimHistory.map((claim, i) => (
                         <motion.div
                             key={claim.id}
                             initial={{ opacity: 0, y: 8 }}
@@ -298,6 +288,20 @@ export function ClaimsPage() {
                         </motion.div>
                     ))}
                 </div>
+                </>
+                )}
+
+                {claimHistory.length === 0 && (
+                    <div className="px-6 py-12 text-center">
+                        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-muted/30 text-muted-foreground">
+                            <FileText className="h-5 w-5" />
+                        </div>
+                        <h3 className="mt-4 text-base font-bold text-foreground">No claim history yet</h3>
+                        <p className="mt-2 text-sm text-muted-foreground">
+                            Once this rider submits and completes claims, they will appear here with live payout details.
+                        </p>
+                    </div>
+                )}
             </motion.div>
 
             {/* ─── Section 6: AI Validation ─── */}
@@ -440,10 +444,10 @@ export function ClaimsPage() {
                             <div className="bg-muted/20 border border-border/50 rounded-xl p-3 flex flex-col gap-1 mb-4">
                                 <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Current Context</p>
                                 <p className="text-sm font-semibold text-foreground flex items-center gap-2">
-                                    <MapPin className="h-3.5 w-3.5" /> Chennai South Zone
+                                    <MapPin className="h-3.5 w-3.5" /> {riderZone}
                                 </p>
                                 <p className="text-xs text-muted-foreground flex items-center gap-2">
-                                    <Clock className="h-3 w-3" /> Today, 3:45 PM
+                                    <Clock className="h-3 w-3" /> {contextTimestamp}
                                 </p>
                             </div>
 
